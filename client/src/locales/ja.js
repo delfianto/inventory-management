@@ -191,6 +191,59 @@ export default {
     }
   },
 
+  // Reports
+  reports: {
+    title: 'パフォーマンスレポート',
+    description: '四半期パフォーマンス指標と月次トレンドを表示',
+    quarterlyPerformance: '四半期パフォーマンス',
+    monthlyRevenueTrend: '月次収益トレンド',
+    monthOverMonth: '前月比分析',
+    table: {
+      quarter: '四半期',
+      totalOrders: '総注文数',
+      totalRevenue: '総収益',
+      avgOrderValue: '平均注文額',
+      fulfillmentRate: '達成率',
+      month: '月',
+      orders: '注文数',
+      revenue: '収益',
+      change: '変化',
+      growthRate: '成長率'
+    },
+    stats: {
+      totalRevenueYTD: '総収益（年初来）',
+      avgMonthlyRevenue: '月間平均収益',
+      totalOrdersYTD: '総注文数（年初来）',
+      bestQuarter: '最高パフォーマンス四半期'
+    }
+  },
+
+  // Backlog
+  backlog: {
+    title: 'バックログ管理',
+    description: '在庫不足の追跡と解決',
+    items: 'バックログ品目',
+    totalItems: 'バックログ品目合計',
+    noItems: 'バックログ品目なし - すべての注文を履行できます！',
+    unitsShort: '{count}個不足',
+    days: '{count}日',
+    priority: {
+      high: '高優先度',
+      medium: '中優先度',
+      low: '低優先度'
+    },
+    table: {
+      orderId: '注文ID',
+      sku: 'SKU',
+      itemName: '品目名',
+      quantityNeeded: '必要数量',
+      quantityAvailable: '利用可能数量',
+      shortage: '不足',
+      daysDelayed: '遅延日数',
+      priority: '優先度'
+    }
+  },
+
   // Restocking
   restocking: {
     title: '再入荷推奨',
