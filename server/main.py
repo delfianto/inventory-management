@@ -1,3 +1,6 @@
+import random
+from datetime import datetime, timedelta
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Optional
@@ -119,6 +122,26 @@ class CreatePurchaseOrderRequest(BaseModel):
     unit_cost: float
     expected_delivery_date: str
     notes: Optional[str] = None
+
+class RestockingRecommendation(BaseModel):
+    id: str
+    item_sku: str
+    item_name: str
+    forecasted_demand: int
+    current_demand: int
+    quantity_on_hand: int
+    recommended_quantity: int
+    unit_cost: float
+    total_cost: float
+    trend: str
+    has_inventory_match: bool
+
+class RestockingOrderRequest(BaseModel):
+    items: List[dict]
+    total_budget: float
+
+# In-memory storage for submitted restocking orders
+submitted_restocking_orders = []
 
 # API endpoints
 @app.get("/")
@@ -303,6 +326,77 @@ def get_monthly_trends():
     result = list(months.values())
     result.sort(key=lambda x: x['month'])
     return result
+
+@app.get("/api/restocking/recommendations", response_model=List[RestockingRecommendation])
+def get_restocking_recommendations(budget: float = 2000000):
+    """Get restocking recommendations based on demand forecasts, sorted by highest forecasted demand."""
+    inventory_by_sku = {item["sku"]: item for item in inventory_items}
+
+    recommendations = []
+    for i, forecast in enumerate(demand_forecasts):
+        sku = forecast["item_sku"]
+        inv_item = inventory_by_sku.get(sku)
+
+        quantity_on_hand = inv_item["quantity_on_hand"] if inv_item else 0
+        unit_cost = inv_item["unit_cost"] if inv_item else 50.0
+
+        recommended_qty = max(0, forecast["forecasted_demand"] - quantity_on_hand)
+
+        if recommended_qty > 0:
+            recommendations.append({
+                "id": str(i + 1),
+                "item_sku": sku,
+                "item_name": forecast["item_name"],
+                "forecasted_demand": forecast["forecasted_demand"],
+                "current_demand": forecast["current_demand"],
+                "quantity_on_hand": quantity_on_hand,
+                "recommended_quantity": recommended_qty,
+                "unit_cost": unit_cost,
+                "total_cost": round(recommended_qty * unit_cost, 2),
+                "trend": forecast["trend"],
+                "has_inventory_match": inv_item is not None
+            })
+
+    # Sort by forecasted_demand descending (highest demand first)
+    recommendations.sort(key=lambda x: x["forecasted_demand"], reverse=True)
+
+    # Include items until budget is exhausted
+    filtered = []
+    remaining_budget = budget
+    for rec in recommendations:
+        if rec["total_cost"] <= remaining_budget:
+            filtered.append(rec)
+            remaining_budget -= rec["total_cost"]
+
+    return filtered
+
+@app.post("/api/restocking/orders")
+def submit_restocking_order(request: RestockingOrderRequest):
+    """Submit a restocking order for all recommended items."""
+    lead_time = random.randint(5, 15)
+    now = datetime.now()
+    expected_delivery = now + timedelta(days=lead_time)
+
+    order_number = f"RST-{now.strftime('%Y')}-{len(submitted_restocking_orders) + 1:04d}"
+
+    order = {
+        "id": f"rst-{len(submitted_restocking_orders) + 1}",
+        "order_number": order_number,
+        "items": request.items,
+        "status": "Processing",
+        "order_date": now.isoformat(),
+        "expected_delivery": expected_delivery.isoformat(),
+        "total_value": request.total_budget,
+        "lead_time_days": lead_time
+    }
+
+    submitted_restocking_orders.append(order)
+    return order
+
+@app.get("/api/restocking/orders")
+def get_restocking_orders():
+    """Get all submitted restocking orders."""
+    return submitted_restocking_orders
 
 if __name__ == "__main__":
     import uvicorn
